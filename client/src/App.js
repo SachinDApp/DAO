@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Web3 from "web3";
-import DAO from "./contracts/DAO.json";
+import organisation from "./contracts/organisation.json";
 import "./App.css";
 import Investors from "./components/Investors/Investors";
 import Manager from "./components/Manager/Manager";
@@ -11,20 +11,21 @@ function App() {
     contract: null,
   });
   const [account, setAccount] = useState("Not connected");
+  const [avaFund, setAvaFund]= useState(0);
   
   useEffect(() => {
     async function init() {
       const provider = new Web3.providers.HttpProvider("HTTP://127.0.0.1:7545");
       const web3 = new Web3(provider);
-      //console.log(web3);
+      console.log(web3);
       const networkId = await web3.eth.net.getId();
-      const deployedNetwork = DAO.networks[networkId];
+      const deployedNetwork = organisation.networks[networkId];
     
       const contract = new web3.eth.Contract(
-       DAO.abi,
+        organisation.abi,
         deployedNetwork.address
       );
-      //console.log(contract);
+      console.log(contract);
       setState({ web3: web3, contract: contract });
     }
     init();
@@ -32,6 +33,8 @@ function App() {
 
   useEffect(() => {
     const { web3 } = state;
+    console.log(web3);
+    console.log("hi");
     const allAccounts = async () => {
       var select = document.getElementById("selectNumber");
       var options = await web3.eth.getAccounts();
@@ -46,6 +49,9 @@ function App() {
     };
     web3 && allAccounts();
   }, [state]);
+   function Change(a){
+      setAvaFund(a);
+    }
   const selectAccount = async () => {
     let selectedAccountAddress = document.getElementById("selectNumber").value;
 
@@ -57,10 +63,20 @@ function App() {
     }
   };
   
+  useEffect(()=>{
+    const {contract}=state;
+    async function fundsAvailability(){
+      const fund = await contract.methods.avaliableFund().call();
+      setAvaFund(fund);
+
+    }
+    contract && fundsAvailability();
+  },[state])
+  
   return (
     <div className="App">
    <p className="ca">Connected Account:{account}</p>
-   <p className="ca">Available Funds:0 ETH</p>
+   <p className="ca">Available Funds:{avaFund} Wei</p>
    <form className="label0" id="myForm">
         <label htmlFor="">Choose an account</label>
         <select className="innerBox" id="selectNumber" onChange={selectAccount}>
@@ -68,9 +84,9 @@ function App() {
         </select>
       </form>
       <p>For Manager Only</p>
-      <Manager state={state} account={account}></Manager>
+      <Manager state={state} account={account} ></Manager>
       <p>For Investors Only</p>
-     <Investors state={state} account={account}></Investors>
+     <Investors state={state} account={account} ></Investors>
     
     </div>
   );
